@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist'],
+    ignores: ['dist', 'android/app/src/main/assets/public'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
