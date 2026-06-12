@@ -19,6 +19,8 @@ interface CalendarViewProps {
   appointments: Appointment[];
   doctors: Doctor[];
   blockedDays: BlockedDay[];
+  onEditAppointment?: (appointment: Appointment) => void;
+  onDeleteAppointment?: (id: string) => void;
 }
 
 type CalendarMode = 'month' | 'week' | 'day';
@@ -33,7 +35,7 @@ const toDateString = (dateObj: Date) => {
 
 const isSpecialty = (value: string): value is Specialty => value === 'psiquiatra' || value === 'psicologo';
 
-export function CalendarView({ appointments, doctors, blockedDays }: CalendarViewProps) {
+export function CalendarView({ appointments, doctors, blockedDays, onEditAppointment, onDeleteAppointment }: CalendarViewProps) {
   const [view, setView] = useState<CalendarMode>('month');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [expandedAppointmentId, setExpandedAppointmentId] = useState<string | null>(null);
@@ -498,13 +500,33 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
                 </p>
                 <h4 className="mt-1 text-lg font-black text-slate-900">{selectedAppointment.patientName}</h4>
               </div>
-              <button
-                type="button"
-                onClick={() => setExpandedAppointmentId(null)}
-                className="w-max cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-100"
-              >
-                Cerrar
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {onEditAppointment && (
+                  <button
+                    type="button"
+                    onClick={() => onEditAppointment(selectedAppointment)}
+                    className="w-max cursor-pointer rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-black text-white hover:bg-indigo-700"
+                  >
+                    Editar
+                  </button>
+                )}
+                {onDeleteAppointment && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteAppointment(selectedAppointment.id)}
+                    className="w-max cursor-pointer rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-700 hover:bg-rose-100"
+                  >
+                    Eliminar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setExpandedAppointmentId(null)}
+                  className="w-max cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-100"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -515,9 +537,10 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
             </div>
 
             <div className="mt-3 grid gap-3 lg:grid-cols-3">
+              <DetailItem icon={<FileText className="h-4 w-4" />} label="CURP" value={selectedAppointment.patientCurp} large />
               <DetailItem icon={<BadgeHelp className="h-4 w-4" />} label="Motivo" value={selectedAppointment.reason} large />
               <DetailItem icon={<Activity className="h-4 w-4" />} label="Estado" value={statusCopy[selectedAppointment.status]} large />
-              <DetailItem icon={<FileText className="h-4 w-4" />} label="Notas" value={selectedAppointment.notes} large />
+              <DetailItem icon={<FileText className="h-4 w-4" />} label="Notas" value={selectedAppointment.notes || 'Sin notas'} large />
             </div>
           </div>
         </motion.section>
