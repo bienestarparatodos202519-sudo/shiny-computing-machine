@@ -258,6 +258,8 @@ const readTextFile = (file: File) =>
     reader.readAsText(file);
   });
 
+const recordCountLabel = (count: number) => `${count} ${count === 1 ? 'registro importado' : 'registros importados'}`;
+
 const loadSavedAppointments = (): Appointment[] => {
   const saved = window.localStorage.getItem(STORAGE_KEY);
   if (!saved) {
@@ -476,7 +478,7 @@ export default function App() {
       setAppointments((current) => (importMode === 'replace' ? imported : [...current, ...imported]));
       setForm(emptyForm());
       setMessage(
-        `Carga masiva lista: ${imported.length} registros importados${importMode === 'replace' ? ' reemplazando la base actual' : ' agregados a la base actual'}${errors.length ? `. ${errors.length} filas omitidas: ${errors.slice(0, 3).join(' ')}` : '.'}`,
+        `Carga masiva lista: ${recordCountLabel(imported.length)} ${importMode === 'replace' ? 'reemplazando la base actual' : 'agregando a la base actual'}${errors.length ? `. ${errors.length} filas omitidas: ${errors.slice(0, 3).join(' ')}` : '.'}`,
       );
     } catch (error) {
       setMessage(error instanceof Error ? `No se pudo importar: ${error.message}` : 'No se pudo importar el archivo.');
