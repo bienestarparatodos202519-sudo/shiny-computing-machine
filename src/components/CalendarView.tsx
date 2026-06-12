@@ -489,37 +489,37 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
           transition={{ duration: 0.22, ease: 'easeOut' }}
           className="mt-4 overflow-hidden"
         >
-            <div className="rounded-3xl border border-indigo-100 bg-white/90 p-4 shadow-lg shadow-indigo-100/60">
-              <div className="mb-4 flex flex-col justify-between gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-start">
-                <div>
-                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-indigo-500">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Expediente diario
-                  </p>
-                  <h4 className="mt-1 text-lg font-black text-slate-900">{selectedAppointment.patientName}</h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setExpandedAppointmentId(null)}
-                  className="w-max cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-100"
-                >
-                  Cerrar
-                </button>
+          <div className="rounded-3xl border border-indigo-100 bg-white/90 p-4 shadow-lg shadow-indigo-100/60">
+            <div className="mb-4 flex flex-col justify-between gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-start">
+              <div>
+                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-indigo-500">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Expediente diario
+                </p>
+                <h4 className="mt-1 text-lg font-black text-slate-900">{selectedAppointment.patientName}</h4>
               </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <DetailItem icon={<Clock className="h-4 w-4" />} label="Horario" value={`${selectedAppointment.date} · ${selectedAppointment.time} hrs`} />
-                <DetailItem icon={<User className="h-4 w-4" />} label="Especialista" value={selectedAppointment.doctorName} />
-                <DetailItem icon={<Phone className="h-4 w-4" />} label="Telefono" value={selectedAppointment.patientPhone} />
-                <DetailItem icon={<FileText className="h-4 w-4" />} label="Expediente" value={selectedAppointment.patientFileNumber} />
-              </div>
-
-              <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                <DetailItem icon={<BadgeHelp className="h-4 w-4" />} label="Motivo" value={selectedAppointment.reason} large />
-                <DetailItem icon={<Activity className="h-4 w-4" />} label="Estado" value={statusCopy[selectedAppointment.status]} large />
-                <DetailItem icon={<FileText className="h-4 w-4" />} label="Notas" value={selectedAppointment.notes} large />
-              </div>
+              <button
+                type="button"
+                onClick={() => setExpandedAppointmentId(null)}
+                className="w-max cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-100"
+              >
+                Cerrar
+              </button>
             </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <DetailItem icon={<Clock className="h-4 w-4" />} label="Horario" value={`${selectedAppointment.date} · ${selectedAppointment.time} hrs`} />
+              <DetailItem icon={<User className="h-4 w-4" />} label="Especialista" value={selectedAppointment.doctorName} />
+              <DetailItem icon={<Phone className="h-4 w-4" />} label="Telefono" value={selectedAppointment.patientPhone} />
+              <DetailItem icon={<FileText className="h-4 w-4" />} label="Expediente" value={selectedAppointment.patientFileNumber} />
+            </div>
+
+            <div className="mt-3 grid gap-3 lg:grid-cols-3">
+              <DetailItem icon={<BadgeHelp className="h-4 w-4" />} label="Motivo" value={selectedAppointment.reason} large />
+              <DetailItem icon={<Activity className="h-4 w-4" />} label="Estado" value={statusCopy[selectedAppointment.status]} large />
+              <DetailItem icon={<FileText className="h-4 w-4" />} label="Notas" value={selectedAppointment.notes} large />
+            </div>
+          </div>
         </motion.section>
       )}
     </div>
