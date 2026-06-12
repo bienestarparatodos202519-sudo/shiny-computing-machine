@@ -60,6 +60,7 @@ export function DataManagementPanel({
     appointmentType: 'individual' as Appointment['appointmentType'],
   });
   const [message, setMessage] = useState('Datos guardados en esta instalacion.');
+  const [messageTone, setMessageTone] = useState<'info' | 'success' | 'warning'>('info');
 
   const selectedPatient = useMemo(() => data.patients.find((patient) => patient.id === appointmentForm.patientId), [appointmentForm.patientId, data.patients]);
   const selectedDoctor = useMemo(() => data.doctors.find((doctor) => doctor.id === appointmentForm.doctorId), [appointmentForm.doctorId, data.doctors]);
@@ -67,6 +68,7 @@ export function DataManagementPanel({
   const addPatient = () => {
     if (!patientForm.name || !patientForm.fileNumber) {
       setMessage('Captura nombre y expediente del paciente.');
+      setMessageTone('warning');
       return;
     }
 
@@ -78,11 +80,13 @@ export function DataManagementPanel({
     setPatientForm(emptyPatient);
     setAppointmentForm((current) => ({ ...current, patientId: patient.id }));
     setMessage('Paciente agregado correctamente.');
+    setMessageTone('success');
   };
 
   const addDoctor = () => {
     if (!doctorForm.name || doctorForm.workDays.length === 0) {
       setMessage('Captura nombre y al menos un dia de jornada.');
+      setMessageTone('warning');
       return;
     }
 
@@ -94,11 +98,13 @@ export function DataManagementPanel({
     setDoctorForm(emptyDoctor);
     setAppointmentForm((current) => ({ ...current, doctorId: doctor.id }));
     setMessage('Especialista agregado correctamente.');
+    setMessageTone('success');
   };
 
   const addAppointment = () => {
     if (!selectedPatient || !selectedDoctor) {
       setMessage('Selecciona paciente y especialista para crear la cita.');
+      setMessageTone('warning');
       return;
     }
 
@@ -118,6 +124,7 @@ export function DataManagementPanel({
     };
     onDataChange({ ...data, appointments: [...data.appointments, appointment] });
     setMessage('Cita agregada al calendario.');
+    setMessageTone('success');
   };
 
   const toggleWorkDay = (day: string) => {
@@ -129,8 +136,11 @@ export function DataManagementPanel({
 
   const handleImport = async (file?: File) => {
     if (!file) return;
+    setMessage(`Importando ${file.name}...`);
+    setMessageTone('info');
     await onImportExcel(file);
-    setMessage('Carga masiva importada y guardada.');
+    setMessage(`Carga masiva Excel importada y guardada: ${file.name}. Ya puedes buscar los pacientes y citas importadas.`);
+    setMessageTone('success');
   };
 
   return (
@@ -165,7 +175,17 @@ export function DataManagementPanel({
         </div>
       </div>
 
-      <div className="mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3 text-xs font-bold text-indigo-900">
+      <div
+        role="status"
+        className={`mb-5 rounded-2xl border p-3 text-xs font-bold ${
+          messageTone === 'success'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            : messageTone === 'warning'
+              ? 'border-amber-200 bg-amber-50 text-amber-900'
+              : 'border-indigo-100 bg-indigo-50/70 text-indigo-900'
+        }`}
+      >
+        <span className="block text-[10px] font-black uppercase tracking-wider">Ultima accion</span>
         {message} Para usar la misma informacion en varias computadoras: descarga el Excel y cargalo en la otra computadora.
       </div>
 
