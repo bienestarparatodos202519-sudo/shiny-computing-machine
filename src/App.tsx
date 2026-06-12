@@ -3,7 +3,8 @@ import { CalendarView } from './components/CalendarView';
 import { DataManagementPanel } from './components/DataManagementPanel';
 import type { Appointment, AppointmentViewRange, ClinicData, Specialty } from './types';
 import { downloadExcelTemplate, exportClinicData, importClinicData } from './utils/excel';
-import { defaultClinicData, loadClinicData, resetClinicData, saveClinicData } from './utils/storage';
+import { loadGoogleSyncUrl, pullFromGoogleSheets, pushToGoogleSheets, saveGoogleSyncUrl } from './utils/googleSheets';
+import { defaultClinicData, loadClinicData, normalizeClinicData, resetClinicData, saveClinicData } from './utils/storage';
 
 interface SearchFilters {
   query: string;
@@ -72,6 +73,7 @@ function App() {
     range: 'all',
     date: todayKey(),
   });
+  const [googleSyncUrl, setGoogleSyncUrl] = useState(() => loadGoogleSyncUrl());
 
   useEffect(() => {
     saveClinicData(data);
@@ -94,6 +96,20 @@ function App() {
   const handleResetData = () => {
     resetClinicData();
     setData(defaultClinicData);
+  };
+
+  const handleGoogleSyncUrlChange = (url: string) => {
+    setGoogleSyncUrl(url);
+    saveGoogleSyncUrl(url);
+  };
+
+  const handleGooglePush = async () => {
+    await pushToGoogleSheets(googleSyncUrl, data);
+  };
+
+  const handleGooglePull = async () => {
+    const syncedData = await pullFromGoogleSheets(googleSyncUrl);
+    setData(normalizeClinicData(syncedData));
   };
 
   return (
@@ -142,6 +158,10 @@ function App() {
           onExportExcel={() => exportClinicData(data)}
           onDownloadTemplate={downloadExcelTemplate}
           onResetData={handleResetData}
+          googleSyncUrl={googleSyncUrl}
+          onGoogleSyncUrlChange={handleGoogleSyncUrlChange}
+          onGooglePush={handleGooglePush}
+          onGooglePull={handleGooglePull}
         />
 
         <CalendarView appointments={searchResults} doctors={data.doctors} blockedDays={data.blockedDays} />

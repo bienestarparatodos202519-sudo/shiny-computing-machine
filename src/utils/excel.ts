@@ -1,25 +1,114 @@
 import readXlsxFile from 'read-excel-file/browser';
 import writeXlsxFile from 'write-excel-file/browser';
 import type { Sheet } from 'write-excel-file/browser';
-import type { Appointment, BlockedDay, ClinicData, Doctor, Patient, Specialty } from '../types';
+import type { Appointment, BlockedDay, ClinicData, Doctor, Patient, Specialty, WorkDay, WorkSchedule } from '../types';
 
 type CellValue = string | number | boolean | Date | null | undefined;
 type Row = CellValue[];
 
 const headers = {
   patients: ['Nombre', 'Expediente', 'Telefono', 'CURP'],
-  doctors: ['Nombre', 'Especialidad', 'Dias de jornada', 'Hora inicio', 'Hora fin'],
+  doctors: [
+    'Nombre',
+    'Especialidad',
+    'Lunes Inicio',
+    'Lunes Fin',
+    'Martes Inicio',
+    'Martes Fin',
+    'Miercoles Inicio',
+    'Miercoles Fin',
+    'Jueves Inicio',
+    'Jueves Fin',
+    'Viernes Inicio',
+    'Viernes Fin',
+    'Sabado Inicio',
+    'Sabado Fin',
+    'Domingo Inicio',
+    'Domingo Fin',
+    'Festivos Inicio',
+    'Festivos Fin',
+  ],
   appointments: ['Fecha', 'Hora', 'Paciente', 'Expediente', 'Telefono', 'CURP', 'Especialista', 'Especialidad', 'Tipo', 'Estatus'],
   blockedDays: ['Fecha', 'Descripcion'],
 };
+const workDays: WorkDay[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo', 'Festivos'];
 
 const normalize = (value: CellValue) => String(value ?? '').trim();
 const normalizeLower = (value: CellValue) => normalize(value).toLowerCase();
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const parseSpecialty = (value: CellValue): Specialty => (normalizeLower(value).includes('psicolog') ? 'psicologo' : 'psiquiatra');
+const parseAppointmentType = (value: CellValue): Appointment['appointmentType'] => {
+  const normalized = normalize(value);
+  return normalized === 'pareja' || normalized === 'pruebas' ? normalized : 'individual';
+};
 
-const toRows = (rows: Row[]) => {
+const pad = (value: number) => String(value).padStart(2, '0');
+
+const normalizeDate = (value: CellValue) => {
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  }
+
+  const raw = normalize(value);
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    return `${slashMatch[3]}-${pad(Number(slashMatch[2]))}-${pad(Number(slashMatch[1]))}`;
+  }
+
+  return raw.slice(0, 10);
+};
+
+const normalizeTime = (value: CellValue) => {
+  if (value instanceof Date) {
+    return `${pad(value.getHours())}:${pad(value.getMinutes())}`;
+  }
+
+  if (typeof value === 'number') {
+    const totalMinutes = Math.round(value * 24 * 60);
+    return `${pad(Math.floor(totalMinutes / 60) % 24)}:${pad(totalMinutes % 60)}`;
+  }
+
+  const raw = normalize(value);
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (match) {
+    return `${pad(Number(match[1]))}:${match[2]}`;
+  }
+
+  return raw;
+};
+
+type ExcelRecord = Record<string, CellValue>;
+
+const createScheduleFromRow = (row: ExcelRecord): WorkSchedule[] => {
+  const legacyDays = normalize(row['dias de jornada']) ? normalize(row['dias de jornada']).split(',').map((day) => day.trim()) : [];
+  const legacyStart = normalizeTime(row['hora inicio']) || '09:00';
+  const legacyEnd = normalizeTime(row['hora fin']) || '17:00';
+
+  return workDays.map((day) => {
+    const key = day.toLowerCase();
+    const start = normalizeTime(row[`${key} inicio`]);
+    const end = normalizeTime(row[`${key} fin`]);
+    const enabled = Boolean(start && end) || legacyDays.includes(day);
+    return {
+      day,
+      enabled,
+      start: start || legacyStart,
+      end: end || legacyEnd,
+    };
+  });
+};
+
+const scheduleValue = (schedule: WorkSchedule[] | undefined, day: WorkDay, type: 'start' | 'end') => {
+  const entry = schedule?.find((item) => item.day === day);
+  if (!entry?.enabled) return '';
+  return type === 'start' ? entry.start : entry.end;
+};
+
+const toRows = (rows: Row[]): ExcelRecord[] => {
   if (rows.length < 2) return [];
   const [headerRow, ...bodyRows] = rows;
   const titles = headerRow.map((cell) => normalizeLower(cell));
@@ -27,9 +116,9 @@ const toRows = (rows: Row[]) => {
   return bodyRows
     .filter((row) => row.some((cell) => normalize(cell)))
     .map((row) => {
-      const record: Record<string, string> = {};
+      const record: ExcelRecord = {};
       titles.forEach((title, index) => {
-        record[title] = normalize(row[index]);
+        record[title] = row[index];
       });
       return record;
     });
@@ -54,7 +143,11 @@ export async function exportClinicData(data: ClinicData) {
         sheet: 'Especialistas',
         data: [
           headers.doctors.map((header) => cell(header)),
-          ...data.doctors.map((doctor) => [doctor.name, doctor.specialty, doctor.workDays.join(', '), doctor.workStart, doctor.workEnd]),
+          ...data.doctors.map((doctor) => [
+            doctor.name,
+            doctor.specialty,
+            ...workDays.flatMap((day) => [scheduleValue(doctor.schedule, day, 'start'), scheduleValue(doctor.schedule, day, 'end')]),
+          ]),
         ],
       },
       {
@@ -62,8 +155,8 @@ export async function exportClinicData(data: ClinicData) {
         data: [
           headers.appointments.map((header) => cell(header)),
           ...data.appointments.map((appointment) => [
-            appointment.date,
-            appointment.time,
+            normalizeDate(appointment.date),
+            normalizeTime(appointment.time),
             appointment.patientName,
             appointment.patientFileNumber,
             appointment.patientPhone,
@@ -92,43 +185,42 @@ export async function importClinicData(file: File): Promise<Partial<ClinicData>>
 
   const patients: Patient[] = toRows(findSheet(workbook, 'Pacientes')).map((row) => ({
     id: createId('pat'),
-    name: row.nombre,
-    fileNumber: row.expediente,
-    phone: row.telefono,
-    curp: row.curp,
+    name: normalize(row.nombre),
+    fileNumber: normalize(row.expediente),
+    phone: normalize(row.telefono),
+    curp: normalize(row.curp),
   }));
 
   const doctors: Doctor[] = toRows(findSheet(workbook, 'Especialistas')).map((row) => ({
     id: createId('doc'),
-    name: row.nombre,
+    name: normalize(row.nombre),
     specialty: parseSpecialty(row.especialidad),
-    workDays: row['dias de jornada'] ? row['dias de jornada'].split(',').map((day) => day.trim()).filter(Boolean) : [],
-    workStart: row['hora inicio'] || '09:00',
-    workEnd: row['hora fin'] || '17:00',
+    schedule: createScheduleFromRow(row),
   }));
 
   const appointments: Appointment[] = toRows(findSheet(workbook, 'Citas')).map((row) => {
-    const doctor = doctors.find((item) => item.name === row.especialista);
+    const doctorName = normalize(row.especialista);
+    const doctor = doctors.find((item) => item.name === doctorName);
     return {
       id: createId('apt'),
-      date: row.fecha,
-      time: row.hora,
-      patientName: row.paciente,
-      patientFileNumber: row.expediente,
-      patientPhone: row.telefono,
-      patientCurp: row.curp,
+      date: normalizeDate(row.fecha),
+      time: normalizeTime(row.hora),
+      patientName: normalize(row.paciente),
+      patientFileNumber: normalize(row.expediente),
+      patientPhone: normalize(row.telefono),
+      patientCurp: normalize(row.curp),
       doctorId: doctor?.id ?? createId('doc-ref'),
-      doctorName: row.especialista,
+      doctorName,
       specialty: parseSpecialty(row.especialidad),
-      appointmentType: row.tipo === 'pareja' || row.tipo === 'pruebas' ? row.tipo : 'individual',
-      status: row.estatus === 'canceled' || row.estatus === 'cancelada' ? 'canceled' : 'confirmed',
+      appointmentType: parseAppointmentType(row.tipo),
+      status: normalize(row.estatus) === 'canceled' || normalize(row.estatus) === 'cancelada' ? 'canceled' : 'confirmed',
     };
   });
 
   const blockedDays: BlockedDay[] = toRows(findSheet(workbook, 'Bloqueos')).map((row) => ({
     id: createId('block'),
-    date: row.fecha,
-    description: row.descripcion,
+    date: normalizeDate(row.fecha),
+    description: normalize(row.descripcion),
   }));
 
   return {
@@ -142,7 +234,13 @@ export async function importClinicData(file: File): Promise<Partial<ClinicData>>
 export async function downloadExcelTemplate() {
   const sheets: Sheet<Blob>[] = [
     { sheet: 'Pacientes', data: [headers.patients.map((header) => cell(header)), ['Nombre Paciente', 'EXP-0001', '+525500000000', 'CURP000000XXXXXX00']] },
-    { sheet: 'Especialistas', data: [headers.doctors.map((header) => cell(header)), ['Dra. Ejemplo', 'psicologo', 'Lunes, Martes, Viernes', '09:00', '17:00']] },
+    {
+      sheet: 'Especialistas',
+      data: [
+        headers.doctors.map((header) => cell(header)),
+        ['Dra. Ejemplo', 'psicologo', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '', '', '', '', '', ''],
+      ],
+    },
     { sheet: 'Citas', data: [headers.appointments.map((header) => cell(header)), ['2026-06-12', '10:00', 'Nombre Paciente', 'EXP-0001', '+525500000000', 'CURP000000XXXXXX00', 'Dra. Ejemplo', 'psicologo', 'individual', 'confirmed']] },
     { sheet: 'Bloqueos', data: [headers.blockedDays.map((header) => cell(header)), ['2026-06-30', 'Capacitacion']] },
   ];

@@ -1,4 +1,4 @@
-import type { Appointment, BlockedDay, Doctor, Patient } from '../types';
+import type { Appointment, BlockedDay, Doctor, Patient, WorkDay, WorkSchedule } from '../types';
 
 const toDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -13,38 +13,41 @@ const addDays = (days: number) => {
   return toDateKey(date);
 };
 
+const workDays: WorkDay[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo', 'Festivos'];
+
+const createSchedule = (enabledDays: WorkDay[], start: string, end: string): WorkSchedule[] => {
+  return workDays.map((day) => ({
+    day,
+    enabled: enabledDays.includes(day),
+    start,
+    end,
+  }));
+};
+
 export const doctors: Doctor[] = [
   {
     id: 'doc-psq-1',
     name: 'Dra. Elena Vargas',
     specialty: 'psiquiatra',
-    workDays: ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'],
-    workStart: '08:00',
-    workEnd: '15:00',
+    schedule: createSchedule(['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'], '08:00', '15:00'),
   },
   {
     id: 'doc-psq-2',
     name: 'Dr. Mateo Rios',
     specialty: 'psiquiatra',
-    workDays: ['Lunes', 'Miercoles', 'Viernes'],
-    workStart: '08:00',
-    workEnd: '14:00',
+    schedule: createSchedule(['Lunes', 'Miercoles', 'Viernes'], '08:00', '14:00'),
   },
   {
     id: 'doc-psi-1',
     name: 'Psic. Sofia Herrera',
     specialty: 'psicologo',
-    workDays: ['Lunes', 'Martes', 'Jueves', 'Viernes'],
-    workStart: '10:00',
-    workEnd: '18:00',
+    schedule: createSchedule(['Lunes', 'Martes', 'Jueves', 'Viernes'], '10:00', '18:00'),
   },
   {
     id: 'doc-psi-2',
     name: 'Psic. Daniel Cruz',
     specialty: 'psicologo',
-    workDays: ['Martes', 'Miercoles', 'Sabado'],
-    workStart: '09:00',
-    workEnd: '16:00',
+    schedule: createSchedule(['Martes', 'Miercoles', 'Sabado'], '09:00', '16:00'),
   },
 ];
 

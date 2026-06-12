@@ -1,13 +1,22 @@
 export type Specialty = 'psiquiatra' | 'psicologo';
 export type AppointmentViewRange = 'all' | 'day' | 'week' | 'month';
+export type WorkDay = 'Lunes' | 'Martes' | 'Miercoles' | 'Jueves' | 'Viernes' | 'Sabado' | 'Domingo' | 'Festivos';
+
+export interface WorkSchedule {
+  day: WorkDay;
+  enabled: boolean;
+  start: string;
+  end: string;
+}
 
 export interface Doctor {
   id: string;
   name: string;
   specialty: Specialty;
-  workDays: string[];
-  workStart: string;
-  workEnd: string;
+  schedule: WorkSchedule[];
+  workDays?: string[];
+  workStart?: string;
+  workEnd?: string;
 }
 
 export interface Patient {

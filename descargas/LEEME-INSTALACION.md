@@ -27,6 +27,8 @@ No necesitas programar, instalar Node ni abrir terminal.
 - Usa "Carga masiva Excel" para subir pacientes, especialistas, citas y bloqueos desde la plantilla.
 - Usa "Descargar Excel" para bajar todos los datos capturados.
 - Para tener la misma informacion en otra computadora, descarga el Excel en la primera computadora y cargalo en la segunda.
+- Para sincronizacion central, configura un Google Sheet con el archivo `GOOGLE_SHEETS_SYNC.gs`, publica el Apps Script como Web App y pega esa URL dentro de "Sincronizacion Google Sheets".
+- Los botones de WhatsApp abren mensajes listos para confirmar, cancelar o recordar citas. El envio automatico sin tocar WhatsApp requiere WhatsApp Business API y un servidor externo.
 
 ## Web opcional
 
