@@ -23,7 +23,7 @@ const GOOGLE_SCOPES = [
 ].join(" ");
 
 const EVIDENCE_SHEET = "Evidencias de Rutas";
-const WORKLOG_SHEET = "Bitacoras de Trabajo";
+const WORKLOG_SHEET = "Bitácoras de Trabajo";
 
 type TokenResponse = {
   access_token?: string;
@@ -245,15 +245,15 @@ async function ensureSpreadsheetStructure(
     "Secuencia de Ruta",
     "Distancia Acumulada",
     "Observaciones",
-    "URL de Fotografia",
-    "Geolocalizacion",
+    "URL de la fotografía",
+    "Geolocalización",
   ]);
   await writeHeaders(session, spreadsheetId, WORKLOG_SHEET, [
     "Fecha de Registro",
     "Nombre del Trabajador",
     "Hora de Inicio",
-    "Hora de Termino",
-    "Duracion Total",
+    "Hora de Término",
+    "Duración Total",
     "Avance de Paradas",
     "Distancia de Avance (km)",
     "Comentarios",

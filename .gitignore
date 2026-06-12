@@ -1,7 +1,10 @@
 node_modules
 dist
 dist_electron
-android
+tsconfig.tsbuildinfo
+android/.gradle
+android/**/build
+android/local.properties
 .env
 .env.local
 *.log
