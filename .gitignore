@@ -1,0 +1,7 @@
+node_modules
+dist
+dist_electron
+android
+.env
+.env.local
+*.log
