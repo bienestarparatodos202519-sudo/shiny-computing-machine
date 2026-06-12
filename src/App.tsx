@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { readSheet } from 'read-excel-file/browser';
 import { CalendarView } from './components/CalendarView';
 import type { Appointment, AppointmentStatus, BlockedDay, Doctor, Specialty } from './types';
 
@@ -139,6 +140,17 @@ const rowsFromHtmlTable = (content: string) => {
   });
 };
 
+const rowsFromMatrix = (matrix: unknown[][]) => {
+  const headers = (matrix[0] ?? []).map((cell) => String(cell ?? '').trim());
+
+  return matrix.slice(1).map((cells) => {
+    return headers.reduce<ImportRow>((importRow, header, index) => {
+      importRow[header] = String(cells[index] ?? '').trim();
+      return importRow;
+    }, {});
+  });
+};
+
 const rowsFromJson = (content: string) => {
   const parsed = JSON.parse(content) as unknown;
   if (!Array.isArray(parsed)) {
@@ -237,6 +249,14 @@ const downloadFile = (content: BlobPart, filename: string, type: string) => {
   link.remove();
   URL.revokeObjectURL(url);
 };
+
+const readTextFile = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado.'));
+    reader.readAsText(file);
+  });
 
 const loadSavedAppointments = (): Appointment[] => {
   const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -420,57 +440,49 @@ export default function App() {
     setMessage('Respaldo descargado. Puedes importarlo en otro dispositivo.');
   };
 
-  const importRecords = (event: ChangeEvent<HTMLInputElement>) => {
+  const importRecords = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const content = String(reader.result ?? '');
-        const fileName = file.name.toLowerCase();
 
-        if (fileName.endsWith('.xlsx')) {
-          throw new Error('Los archivos .xlsx no se leen directo. Guarda el Excel como .xls o .csv, o usa el .xls que descarga esta app.');
+    try {
+      const fileName = file.name.toLowerCase();
+      const rows = fileName.endsWith('.xlsx')
+        ? rowsFromMatrix(await readSheet(file))
+        : await readTextFile(file).then((content) =>
+            fileName.endsWith('.json')
+              ? rowsFromJson(content)
+              : content.toLowerCase().includes('<table')
+                ? rowsFromHtmlTable(content)
+                : rowsFromCsv(content),
+          );
+
+      const imported: Appointment[] = [];
+      const errors: string[] = [];
+
+      rows.forEach((row, index) => {
+        try {
+          imported.push(appointmentFromRow(row, index + 2));
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : `Fila ${index + 2}: error desconocido.`);
         }
+      });
 
-        const rows = fileName.endsWith('.json')
-          ? rowsFromJson(content)
-          : content.toLowerCase().includes('<table')
-            ? rowsFromHtmlTable(content)
-            : rowsFromCsv(content);
-        const imported: Appointment[] = [];
-        const errors: string[] = [];
-
-        rows.forEach((row, index) => {
-          try {
-            imported.push(appointmentFromRow(row, index + 2));
-          } catch (error) {
-            errors.push(error instanceof Error ? error.message : `Fila ${index + 2}: error desconocido.`);
-          }
-        });
-
-        if (imported.length === 0) {
-          throw new Error(errors[0] ?? 'No se encontraron registros válidos para importar.');
-        }
-
-        setAppointments((current) => (importMode === 'replace' ? imported : [...current, ...imported]));
-        setForm(emptyForm());
-        setMessage(
-          `Carga masiva lista: ${imported.length} registros importados${importMode === 'replace' ? ' reemplazando la base actual' : ' agregados a la base actual'}${errors.length ? `. ${errors.length} filas omitidas: ${errors.slice(0, 3).join(' ')}` : '.'}`,
-        );
-      } catch (error) {
-        setMessage(error instanceof Error ? `No se pudo importar: ${error.message}` : 'No se pudo importar el archivo.');
-      } finally {
-        event.target.value = '';
+      if (imported.length === 0) {
+        throw new Error(errors[0] ?? 'No se encontraron registros válidos para importar.');
       }
-    };
-    reader.onerror = () => {
-      setMessage('No se pudo leer el archivo seleccionado. Intenta guardarlo de nuevo como CSV, XLS o JSON.');
+
+      setAppointments((current) => (importMode === 'replace' ? imported : [...current, ...imported]));
+      setForm(emptyForm());
+      setMessage(
+        `Carga masiva lista: ${imported.length} registros importados${importMode === 'replace' ? ' reemplazando la base actual' : ' agregados a la base actual'}${errors.length ? `. ${errors.length} filas omitidas: ${errors.slice(0, 3).join(' ')}` : '.'}`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? `No se pudo importar: ${error.message}` : 'No se pudo importar el archivo.');
+    } finally {
       event.target.value = '';
-    };
-    reader.readAsText(file);
+    }
   };
 
   return (
@@ -504,7 +516,7 @@ export default function App() {
               <button onClick={() => importInputRef.current?.click()} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
                 Carga masiva / importar base
               </button>
-              <input ref={importInputRef} type="file" accept=".json,.csv,.xls,.html,text/csv,application/json,application/vnd.ms-excel" onChange={importRecords} className="hidden" />
+              <input ref={importInputRef} type="file" accept=".json,.csv,.xls,.xlsx,.html,text/csv,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={importRecords} className="hidden" />
             </div>
           </div>
 

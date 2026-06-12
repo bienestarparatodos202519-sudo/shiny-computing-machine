@@ -48,7 +48,8 @@
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "read-excel-file": "^9.2.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
