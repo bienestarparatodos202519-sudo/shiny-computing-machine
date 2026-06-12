@@ -29,6 +29,8 @@ type ImportMode = 'append' | 'replace';
 
 type ImportRow = Record<string, string>;
 
+type WhatsAppMessageType = 'confirm' | 'cancel';
+
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -60,6 +62,8 @@ const timeOptions = Array.from({ length: 25 }, (_, index) => {
 });
 
 const normalizeCurp = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 18);
+
+const displayCurp = (value: string) => value || 'Sin CURP';
 
 const createId = () => {
   if ('crypto' in window && typeof window.crypto.randomUUID === 'function') {
@@ -211,7 +215,6 @@ const appointmentFromRow = (row: ImportRow, rowNumber: number) => {
   const missing = [
     !patientName ? 'Nombre' : '',
     !patientFileNumber ? 'Expediente' : '',
-    !patientCurp ? 'CURP' : '',
     !patientPhone ? 'Telefono' : '',
   ].filter(Boolean);
 
@@ -259,6 +262,19 @@ const readTextFile = (file: File) =>
   });
 
 const recordCountLabel = (count: number) => `${count} ${count === 1 ? 'registro importado' : 'registros importados'}`;
+
+const normalizeWhatsAppPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  return digits.length === 10 ? `52${digits}` : digits;
+};
+
+const messageDate = (record: Appointment) => {
+  const date = new Date(`${record.date}T00:00:00`);
+  const formattedDate = Number.isNaN(date.getTime())
+    ? record.date
+    : date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return `${formattedDate} a las ${record.time} hrs`;
+};
 
 const loadSavedAppointments = (): Appointment[] => {
   const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -410,6 +426,22 @@ export default function App() {
       setForm(emptyForm());
     }
     setMessage('Registro eliminado.');
+  };
+
+  const sendWhatsAppMessage = (record: Appointment, type: WhatsAppMessageType) => {
+    const phone = normalizeWhatsAppPhone(record.patientPhone);
+    if (!phone) {
+      setMessage(`No hay teléfono válido para ${record.patientName}.`);
+      return;
+    }
+
+    const text =
+      type === 'confirm'
+        ? `Hola ${record.patientName}, le confirmamos su cita de ${record.specialty === 'psicologo' ? 'Psicología' : 'Psiquiatría'} con ${record.doctorName} para el ${messageDate(record)}. Expediente: ${record.patientFileNumber}.`
+        : `Hola ${record.patientName}, le informamos que su cita de ${record.specialty === 'psicologo' ? 'Psicología' : 'Psiquiatría'} con ${record.doctorName} para el ${messageDate(record)} ha sido cancelada. Por favor comuníquese para reagendar. Expediente: ${record.patientFileNumber}.`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    setMessage(type === 'confirm' ? `Mensaje de confirmación listo para ${record.patientName}.` : `Mensaje de cancelación listo para ${record.patientName}.`);
   };
 
   const exportExcel = () => {
@@ -582,7 +614,14 @@ export default function App() {
           </form>
         </section>
 
-        <CalendarView appointments={appointments} doctors={doctors} blockedDays={blockedDays} onEditAppointment={editRecord} onDeleteAppointment={deleteRecord} />
+        <CalendarView
+          appointments={appointments}
+          doctors={doctors}
+          blockedDays={blockedDays}
+          onEditAppointment={editRecord}
+          onDeleteAppointment={deleteRecord}
+          onSendWhatsApp={sendWhatsAppMessage}
+        />
 
         <section className="rounded-3xl border border-white/60 bg-white/70 p-5 shadow-xl shadow-slate-200/60 backdrop-blur-md">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -613,13 +652,15 @@ export default function App() {
                     <td className="py-3 font-mono">{record.date} {record.time}</td>
                     <td>{record.patientName}</td>
                     <td>{record.patientFileNumber}</td>
-                    <td className="font-mono">{record.patientCurp}</td>
+                    <td className="font-mono">{displayCurp(record.patientCurp)}</td>
                     <td>{record.patientPhone}</td>
                     <td>{record.specialty === 'psicologo' ? 'Psicologo' : 'Psiquiatra'}</td>
                     <td>{record.doctorName}</td>
                     <td>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button onClick={() => editRecord(record)} className="rounded-xl bg-indigo-50 px-3 py-1.5 font-black text-indigo-700 hover:bg-indigo-100">Editar</button>
+                        <button onClick={() => sendWhatsAppMessage(record, 'confirm')} className="rounded-xl bg-emerald-50 px-3 py-1.5 font-black text-emerald-700 hover:bg-emerald-100">WhatsApp confirmar</button>
+                        <button onClick={() => sendWhatsAppMessage(record, 'cancel')} className="rounded-xl bg-amber-50 px-3 py-1.5 font-black text-amber-700 hover:bg-amber-100">WhatsApp cancelar</button>
                         <button onClick={() => deleteRecord(record.id)} className="rounded-xl bg-rose-50 px-3 py-1.5 font-black text-rose-700 hover:bg-rose-100">Eliminar</button>
                       </div>
                     </td>

@@ -21,6 +21,7 @@ interface CalendarViewProps {
   blockedDays: BlockedDay[];
   onEditAppointment?: (appointment: Appointment) => void;
   onDeleteAppointment?: (id: string) => void;
+  onSendWhatsApp?: (appointment: Appointment, type: 'confirm' | 'cancel') => void;
 }
 
 type CalendarMode = 'month' | 'week' | 'day';
@@ -35,7 +36,7 @@ const toDateString = (dateObj: Date) => {
 
 const isSpecialty = (value: string): value is Specialty => value === 'psiquiatra' || value === 'psicologo';
 
-export function CalendarView({ appointments, doctors, blockedDays, onEditAppointment, onDeleteAppointment }: CalendarViewProps) {
+export function CalendarView({ appointments, doctors, blockedDays, onEditAppointment, onDeleteAppointment, onSendWhatsApp }: CalendarViewProps) {
   const [view, setView] = useState<CalendarMode>('month');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [expandedAppointmentId, setExpandedAppointmentId] = useState<string | null>(null);
@@ -519,6 +520,24 @@ export function CalendarView({ appointments, doctors, blockedDays, onEditAppoint
                     Eliminar
                   </button>
                 )}
+                {onSendWhatsApp && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onSendWhatsApp(selectedAppointment, 'confirm')}
+                      className="w-max cursor-pointer rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700 hover:bg-emerald-100"
+                    >
+                      WhatsApp confirmar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSendWhatsApp(selectedAppointment, 'cancel')}
+                      className="w-max cursor-pointer rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700 hover:bg-amber-100"
+                    >
+                      WhatsApp cancelar
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => setExpandedAppointmentId(null)}
@@ -537,7 +556,7 @@ export function CalendarView({ appointments, doctors, blockedDays, onEditAppoint
             </div>
 
             <div className="mt-3 grid gap-3 lg:grid-cols-3">
-              <DetailItem icon={<FileText className="h-4 w-4" />} label="CURP" value={selectedAppointment.patientCurp} large />
+              <DetailItem icon={<FileText className="h-4 w-4" />} label="CURP" value={selectedAppointment.patientCurp || 'Sin CURP'} large />
               <DetailItem icon={<BadgeHelp className="h-4 w-4" />} label="Motivo" value={selectedAppointment.reason} large />
               <DetailItem icon={<Activity className="h-4 w-4" />} label="Estado" value={statusCopy[selectedAppointment.status]} large />
               <DetailItem icon={<FileText className="h-4 w-4" />} label="Notas" value={selectedAppointment.notes || 'Sin notas'} large />
