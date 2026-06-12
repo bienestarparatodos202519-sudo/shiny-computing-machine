@@ -15,7 +15,7 @@ interface DataManagementPanelProps {
   searchResults: Appointment[];
   onSearchChange: (filters: SearchFilters) => void;
   onDataChange: (data: ClinicData) => void;
-  onImportExcel: (file: File) => Promise<void>;
+  onImportExcel: (file: File) => Promise<Partial<ClinicData>>;
   onExportExcel: () => Promise<void>;
   onDownloadTemplate: () => Promise<void>;
   onResetData: () => void;
@@ -151,9 +151,15 @@ export function DataManagementPanel({
     if (!file) return;
     setMessage(`Importando ${file.name}...`);
     setMessageTone('info');
-    await onImportExcel(file);
-    setMessage(`Carga masiva Excel importada y guardada: ${file.name}. Ya puedes buscar los pacientes y citas importadas.`);
-    setMessageTone('success');
+    try {
+      const imported = await onImportExcel(file);
+      const totalRecords = (imported.patients?.length ?? 0) + (imported.doctors?.length ?? 0) + (imported.appointments?.length ?? 0) + (imported.blockedDays?.length ?? 0);
+      setMessage(`Carga masiva Excel importada y guardada: ${file.name}. Registros agregados o actualizados: ${totalRecords}.`);
+      setMessageTone('success');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'No se pudo importar el Excel. Revisa que uses la plantilla de carga masiva.');
+      setMessageTone('warning');
+    }
   };
 
   const deletePatient = (patient: Patient) => {

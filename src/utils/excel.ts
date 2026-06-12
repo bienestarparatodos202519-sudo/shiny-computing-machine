@@ -35,7 +35,8 @@ const workDays: WorkDay[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'
 
 const normalize = (value: CellValue) => String(value ?? '').trim();
 const normalizeLower = (value: CellValue) => normalize(value).toLowerCase();
-const normalizeHeader = (value: CellValue) => normalizeLower(value).replace(/\s*\(.+\)\s*$/, '');
+const normalizeKey = (value: CellValue) => normalizeLower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const normalizeHeader = (value: CellValue) => normalizeKey(value).replace(/\s*\(.+\)\s*$/, '');
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const parseSpecialty = (value: CellValue): Specialty => (normalizeLower(value).includes('psicolog') ? 'psicologo' : 'psiquiatra');
@@ -125,8 +126,16 @@ const toRows = (rows: Row[]): ExcelRecord[] => {
     });
 };
 
-const findSheet = (sheets: { sheet: string; data: Row[] }[], name: string) => {
-  return sheets.find((sheet) => sheet.sheet.toLowerCase() === name.toLowerCase())?.data ?? [];
+const findSheet = (sheets: { sheet: string; data: Row[] }[], names: string[]) => {
+  const expectedNames = names.map((name) => normalizeKey(name));
+  return sheets.find((sheet) => expectedNames.includes(normalizeKey(sheet.sheet)))?.data ?? [];
+};
+
+const sheetNames = {
+  patients: ['Pacientes', 'Paciente', 'Patients'],
+  doctors: ['Especialistas', 'Especialista', 'Doctores', 'Doctor', 'Doctors'],
+  appointments: ['Citas', 'Cita', 'Appointments', 'Appointment'],
+  blockedDays: ['Bloqueos', 'Bloqueo', 'Dias bloqueados', 'Dias de bloqueo', 'Blocked days'],
 };
 
 const cell = (value: CellValue) => value ?? '';
@@ -184,7 +193,8 @@ export async function exportClinicData(data: ClinicData) {
 export async function importClinicData(file: File): Promise<Partial<ClinicData>> {
   const workbook = (await readXlsxFile(file)) as { sheet: string; data: Row[] }[];
 
-  const patients: Patient[] = toRows(findSheet(workbook, 'Pacientes')).map((row) => ({
+  const patientRows = toRows(findSheet(workbook, sheetNames.patients));
+  const patients: Patient[] = patientRows.map((row) => ({
     id: createId('pat'),
     name: normalize(row.nombre),
     fileNumber: normalize(row.expediente),
@@ -192,14 +202,16 @@ export async function importClinicData(file: File): Promise<Partial<ClinicData>>
     curp: normalize(row.curp),
   }));
 
-  const doctors: Doctor[] = toRows(findSheet(workbook, 'Especialistas')).map((row) => ({
+  const doctorRows = toRows(findSheet(workbook, sheetNames.doctors));
+  const doctors: Doctor[] = doctorRows.map((row) => ({
     id: createId('doc'),
     name: normalize(row.nombre),
     specialty: parseSpecialty(row.especialidad),
     schedule: createScheduleFromRow(row),
   }));
 
-  const appointments: Appointment[] = toRows(findSheet(workbook, 'Citas')).map((row) => {
+  const appointmentRows = toRows(findSheet(workbook, sheetNames.appointments));
+  const appointments: Appointment[] = appointmentRows.map((row) => {
     const doctorName = normalize(row.especialista);
     const doctor = doctors.find((item) => item.name === doctorName);
     return {
@@ -218,11 +230,16 @@ export async function importClinicData(file: File): Promise<Partial<ClinicData>>
     };
   });
 
-  const blockedDays: BlockedDay[] = toRows(findSheet(workbook, 'Bloqueos')).map((row) => ({
+  const blockedDayRows = toRows(findSheet(workbook, sheetNames.blockedDays));
+  const blockedDays: BlockedDay[] = blockedDayRows.map((row) => ({
     id: createId('block'),
     date: normalizeDate(row.fecha),
     description: normalize(row.descripcion),
   }));
+
+  if (patients.length + doctors.length + appointments.length + blockedDays.length === 0) {
+    throw new Error('No se encontraron registros para importar. Verifica que el Excel tenga hojas Pacientes, Especialistas, Citas o Bloqueos con encabezados de la plantilla.');
+  }
 
   return {
     patients,

@@ -91,6 +91,7 @@ function App() {
       appointments: mergeByKey(current.appointments, imported.appointments, (appointment) => `${appointment.date}-${appointment.time}-${appointment.patientFileNumber}-${appointment.doctorName}`),
       blockedDays: mergeByKey(current.blockedDays, imported.blockedDays, (blockedDay) => blockedDay.date),
     }));
+    return imported;
   };
 
   const handleResetData = () => {
