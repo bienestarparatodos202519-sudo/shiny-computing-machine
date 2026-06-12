@@ -500,6 +500,9 @@ export function CalendarView({ appointments, doctors, blockedDays, onEditAppoint
                   Expediente diario
                 </p>
                 <h4 className="mt-1 text-lg font-black text-slate-900">{selectedAppointment.patientName}</h4>
+                <p className="mt-1 text-xs font-bold text-slate-500">
+                  Exp: {selectedAppointment.patientFileNumber} · CURP: {selectedAppointment.patientCurp || 'Sin CURP'}
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {onEditAppointment && (
