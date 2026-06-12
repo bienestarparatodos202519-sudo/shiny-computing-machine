@@ -12,6 +12,7 @@ interface SearchFilters {
 interface DataManagementPanelProps {
   data: ClinicData;
   searchFilters: SearchFilters;
+  patientSearchResults: Patient[];
   searchResults: Appointment[];
   onSearchChange: (filters: SearchFilters) => void;
   onDataChange: (data: ClinicData) => void;
@@ -58,6 +59,7 @@ const whatsappUrl = (phone: string, message: string) => {
 export function DataManagementPanel({
   data,
   searchFilters,
+  patientSearchResults,
   searchResults,
   onSearchChange,
   onDataChange,
@@ -400,6 +402,21 @@ export function DataManagementPanel({
             <option value="month">Mes</option>
           </select>
           <input type="date" value={searchFilters.date} onChange={(event) => onSearchChange({ ...searchFilters, date: event.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold" />
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Pacientes encontrados</span>
+          {patientSearchResults.length === 0 ? (
+            <p className="mt-2 text-xs font-bold text-slate-400">No hay pacientes con ese filtro.</p>
+          ) : (
+            <div className="mt-2 grid gap-1 md:grid-cols-2">
+              {patientSearchResults.slice(0, 20).map((patient) => (
+                <div key={patient.id} className="rounded-lg bg-white px-2 py-1 text-[11px] font-bold text-slate-700">
+                  {patient.name} - <span className="font-mono">{patient.fileNumber}</span> - {patient.phone}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-3 max-h-52 overflow-y-auto rounded-xl border border-slate-100">

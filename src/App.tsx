@@ -56,6 +56,20 @@ const filterAppointments = (appointments: Appointment[], filters: SearchFilters)
     .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 };
 
+const filterPatients = (patients: ClinicData['patients'], filters: SearchFilters) => {
+  const query = filters.query.trim().toLowerCase();
+  if (!query) return patients.slice(0, 20);
+
+  return patients.filter((patient) => {
+    return (
+      patient.name.toLowerCase().includes(query) ||
+      patient.fileNumber.toLowerCase().includes(query) ||
+      patient.phone.toLowerCase().includes(query) ||
+      patient.curp.toLowerCase().includes(query)
+    );
+  });
+};
+
 const mergeByKey = <T,>(current: T[], incoming: T[] | undefined, getKey: (item: T) => string) => {
   if (!incoming?.length) return current;
   const map = new Map(current.map((item) => [getKey(item), item]));
@@ -82,6 +96,7 @@ function App() {
   const confirmedAppointments = data.appointments.filter((app) => app.status === 'confirmed');
   const psychologyAppointments = data.appointments.filter((app) => app.specialty === 'psicologo');
   const searchResults = useMemo(() => filterAppointments(data.appointments, searchFilters), [data.appointments, searchFilters]);
+  const patientSearchResults = useMemo(() => filterPatients(data.patients, searchFilters), [data.patients, searchFilters]);
 
   const handleImportExcel = async (file: File) => {
     const imported = await importClinicData(file);
@@ -152,6 +167,7 @@ function App() {
         <DataManagementPanel
           data={data}
           searchFilters={searchFilters}
+          patientSearchResults={patientSearchResults}
           searchResults={searchResults}
           onSearchChange={setSearchFilters}
           onDataChange={setData}

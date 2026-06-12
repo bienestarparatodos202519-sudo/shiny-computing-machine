@@ -25,7 +25,9 @@ No necesitas programar, instalar Node ni abrir terminal.
 - La CURP es opcional; si no la tienes, deja ese campo vacio.
 - Da de alta psicologos o psiquiatras desde "Alta manual de psicologo/psiquiatra".
 - Captura jornadas con dias y horas de trabajo.
-- Usa "Carga masiva Excel" para subir pacientes, especialistas, citas y bloqueos desde la plantilla.
+- Usa "Carga masiva Excel" con una sola hoja y estas columnas: `Nombre de paciente`, `Expediente`, `Numero de telefono`, `Especialidad`, `Especialista`.
+- Con ese formato simple se crean pacientes y especialistas aunque no tengas CURP, fecha ni hora.
+- Si agregas columnas opcionales `Fecha` y `Hora`, tambien se crea la cita en calendario.
 - En la carga masiva, la columna "CURP (Opcional)" puede quedar vacia.
 - Usa "Descargar Excel" para bajar todos los datos capturados.
 - Para tener la misma informacion en otra computadora, descarga el Excel en la primera computadora y cargalo en la segunda.

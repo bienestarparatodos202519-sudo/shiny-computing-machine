@@ -7,6 +7,7 @@ type CellValue = string | number | boolean | Date | null | undefined;
 type Row = CellValue[];
 
 const headers = {
+  simple: ['Nombre de paciente', 'Expediente', 'Numero de telefono', 'Especialidad', 'Especialista'],
   patients: ['Nombre', 'Expediente', 'Telefono', 'CURP (Opcional)'],
   doctors: [
     'Nombre',
@@ -89,12 +90,17 @@ const createScheduleFromRow = (row: ExcelRecord): WorkSchedule[] => {
   const legacyDays = normalize(row['dias de jornada']) ? normalize(row['dias de jornada']).split(',').map((day) => day.trim()) : [];
   const legacyStart = normalizeTime(row['hora inicio']) || '09:00';
   const legacyEnd = normalizeTime(row['hora fin']) || '17:00';
+  const hasIndividualHours = workDays.some((day) => {
+    const key = day.toLowerCase();
+    return normalize(row[`${key} inicio`]) || normalize(row[`${key} fin`]);
+  });
+  const defaultEnabledDays = hasIndividualHours || legacyDays.length ? legacyDays : ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
 
   return workDays.map((day) => {
     const key = day.toLowerCase();
     const start = normalizeTime(row[`${key} inicio`]);
     const end = normalizeTime(row[`${key} fin`]);
-    const enabled = Boolean(start && end) || legacyDays.includes(day);
+    const enabled = Boolean(start && end) || defaultEnabledDays.includes(day);
     return {
       day,
       enabled,
@@ -131,11 +137,79 @@ const findSheet = (sheets: { sheet: string; data: Row[] }[], names: string[]) =>
   return sheets.find((sheet) => expectedNames.includes(normalizeKey(sheet.sheet)))?.data ?? [];
 };
 
+const findSimpleSheet = (sheets: { sheet: string; data: Row[] }[]) => {
+  const namedSheet = findSheet(sheets, ['Carga Masiva', 'Carga', 'Registros', 'Datos']);
+  if (namedSheet.length) return namedSheet;
+
+  return sheets.find((sheet) => {
+    const headerRow = sheet.data[0] ?? [];
+    const headers = headerRow.map((cell) => normalizeHeader(cell));
+    return headers.includes('nombre de paciente') && headers.includes('expediente') && headers.includes('especialidad') && headers.includes('especialista');
+  })?.data ?? [];
+};
+
+const valueOf = (row: ExcelRecord, aliases: string[]) => {
+  for (const alias of aliases) {
+    const value = row[normalizeHeader(alias)];
+    if (normalize(value)) return value;
+  }
+  return '';
+};
+
 const sheetNames = {
   patients: ['Pacientes', 'Paciente', 'Patients'],
   doctors: ['Especialistas', 'Especialista', 'Doctores', 'Doctor', 'Doctors'],
   appointments: ['Citas', 'Cita', 'Appointments', 'Appointment'],
   blockedDays: ['Bloqueos', 'Bloqueo', 'Dias bloqueados', 'Dias de bloqueo', 'Blocked days'],
+};
+
+const simplePatientsFromRows = (rows: ExcelRecord[]): Patient[] => {
+  return rows.map((row) => ({
+    id: createId('pat'),
+    name: normalize(valueOf(row, ['Nombre de paciente', 'Paciente', 'Nombre'])),
+    fileNumber: normalize(valueOf(row, ['Expediente', 'Numero de expediente', 'Número de expediente'])),
+    phone: normalize(valueOf(row, ['Numero de telefono', 'Número de teléfono', 'Telefono', 'Teléfono'])),
+    curp: normalize(valueOf(row, ['CURP', 'CURP Opcional'])),
+  })).filter((patient) => patient.name && patient.fileNumber);
+};
+
+const simpleDoctorsFromRows = (rows: ExcelRecord[]): Doctor[] => {
+  const uniqueDoctors = new Map<string, Doctor>();
+  rows.forEach((row) => {
+    const name = normalize(valueOf(row, ['Especialista', 'Doctor', 'Medico', 'Médico']));
+    if (!name) return;
+    const specialty = parseSpecialty(valueOf(row, ['Especialidad']));
+    uniqueDoctors.set(`${name}-${specialty}`, {
+      id: createId('doc'),
+      name,
+      specialty,
+      schedule: createScheduleFromRow(row),
+    });
+  });
+  return Array.from(uniqueDoctors.values());
+};
+
+const simpleAppointmentsFromRows = (rows: ExcelRecord[], doctors: Doctor[]): Appointment[] => {
+  return rows
+    .filter((row) => normalize(valueOf(row, ['Fecha'])) && normalize(valueOf(row, ['Hora'])))
+    .map((row) => {
+      const doctorName = normalize(valueOf(row, ['Especialista', 'Doctor', 'Medico', 'Médico']));
+      const doctor = doctors.find((item) => item.name === doctorName);
+      return {
+        id: createId('apt'),
+        date: normalizeDate(valueOf(row, ['Fecha'])),
+        time: normalizeTime(valueOf(row, ['Hora'])),
+        patientName: normalize(valueOf(row, ['Nombre de paciente', 'Paciente', 'Nombre'])),
+        patientFileNumber: normalize(valueOf(row, ['Expediente', 'Numero de expediente', 'Número de expediente'])),
+        patientPhone: normalize(valueOf(row, ['Numero de telefono', 'Número de teléfono', 'Telefono', 'Teléfono'])),
+        patientCurp: normalize(valueOf(row, ['CURP', 'CURP Opcional'])),
+        doctorId: doctor?.id ?? createId('doc-ref'),
+        doctorName,
+        specialty: parseSpecialty(valueOf(row, ['Especialidad'])),
+        appointmentType: parseAppointmentType(valueOf(row, ['Tipo'])),
+        status: normalize(valueOf(row, ['Estatus'])) === 'canceled' || normalize(valueOf(row, ['Estatus'])) === 'cancelada' ? 'canceled' : 'confirmed',
+      };
+    });
 };
 
 const cell = (value: CellValue) => value ?? '';
@@ -192,6 +266,22 @@ export async function exportClinicData(data: ClinicData) {
 
 export async function importClinicData(file: File): Promise<Partial<ClinicData>> {
   const workbook = (await readXlsxFile(file)) as { sheet: string; data: Row[] }[];
+
+  const simpleRows = toRows(findSimpleSheet(workbook));
+  if (simpleRows.length) {
+    const patients = simplePatientsFromRows(simpleRows);
+    const doctors = simpleDoctorsFromRows(simpleRows);
+    const appointments = simpleAppointmentsFromRows(simpleRows, doctors);
+
+    if (patients.length + doctors.length + appointments.length > 0) {
+      return {
+        patients,
+        doctors,
+        appointments,
+        blockedDays: [],
+      };
+    }
+  }
 
   const patientRows = toRows(findSheet(workbook, sheetNames.patients));
   const patients: Patient[] = patientRows.map((row) => ({
@@ -251,16 +341,13 @@ export async function importClinicData(file: File): Promise<Partial<ClinicData>>
 
 export async function downloadExcelTemplate() {
   const sheets: Sheet<Blob>[] = [
-    { sheet: 'Pacientes', data: [headers.patients.map((header) => cell(header)), ['Nombre Paciente', 'EXP-0001', '+525500000000', '']] },
     {
-      sheet: 'Especialistas',
+      sheet: 'Carga Masiva',
       data: [
-        headers.doctors.map((header) => cell(header)),
-        ['Dra. Ejemplo', 'psicologo', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '', '', '', '', '', ''],
+        headers.simple.map((header) => cell(header)),
+        ['Nombre Paciente', 'EXP-0001', '+525500000000', 'psicologo', 'Dra. Ejemplo'],
       ],
     },
-    { sheet: 'Citas', data: [headers.appointments.map((header) => cell(header)), ['2026-06-12', '10:00', 'Nombre Paciente', 'EXP-0001', '+525500000000', '', 'Dra. Ejemplo', 'psicologo', 'individual', 'confirmed']] },
-    { sheet: 'Bloqueos', data: [headers.blockedDays.map((header) => cell(header)), ['2026-06-30', 'Capacitacion']] },
   ];
 
   await writeXlsxFile(sheets).toFile('plantilla-carga-masiva-agenda-clinica.xlsx');
