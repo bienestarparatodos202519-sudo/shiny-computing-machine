@@ -39,7 +39,7 @@ La app usa OAuth de Google con una sesion local de 50 minutos. Si el usuario adm
 Pestanas creadas/verificadas:
 
 - `Evidencias de Rutas`
-- `Bitacoras de Trabajo`
+- `Bitácoras de Trabajo`
 
 Si el servidor o Google no responde, las evidencias y bitacoras quedan en la cola offline del dispositivo para reintento manual.
 
