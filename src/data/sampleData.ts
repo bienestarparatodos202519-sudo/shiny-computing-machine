@@ -1,4 +1,4 @@
-import type { Appointment, BlockedDay, Doctor } from '../types';
+import type { Appointment, BlockedDay, Doctor, Patient } from '../types';
 
 const toDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -18,21 +18,78 @@ export const doctors: Doctor[] = [
     id: 'doc-psq-1',
     name: 'Dra. Elena Vargas',
     specialty: 'psiquiatra',
+    workDays: ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'],
+    workStart: '08:00',
+    workEnd: '15:00',
   },
   {
     id: 'doc-psq-2',
     name: 'Dr. Mateo Rios',
     specialty: 'psiquiatra',
+    workDays: ['Lunes', 'Miercoles', 'Viernes'],
+    workStart: '08:00',
+    workEnd: '14:00',
   },
   {
     id: 'doc-psi-1',
     name: 'Psic. Sofia Herrera',
     specialty: 'psicologo',
+    workDays: ['Lunes', 'Martes', 'Jueves', 'Viernes'],
+    workStart: '10:00',
+    workEnd: '18:00',
   },
   {
     id: 'doc-psi-2',
     name: 'Psic. Daniel Cruz',
     specialty: 'psicologo',
+    workDays: ['Martes', 'Miercoles', 'Sabado'],
+    workStart: '09:00',
+    workEnd: '16:00',
+  },
+];
+
+export const patients: Patient[] = [
+  {
+    id: 'pat-001',
+    name: 'Camila Torres',
+    fileNumber: 'EXP-1048',
+    phone: '+525512345678',
+    curp: 'TOCC920814MDFRRM09',
+  },
+  {
+    id: 'pat-002',
+    name: 'Luis Hernandez',
+    fileNumber: 'EXP-2051',
+    phone: '+525587654321',
+    curp: 'HEHL880321HDFRNS04',
+  },
+  {
+    id: 'pat-003',
+    name: 'Mariana Salas',
+    fileNumber: 'EXP-3110',
+    phone: '+525500001111',
+    curp: '',
+  },
+  {
+    id: 'pat-004',
+    name: 'Roberto Mejia',
+    fileNumber: 'EXP-0862',
+    phone: '5500000000',
+    curp: 'MERB790506HDFJJB05',
+  },
+  {
+    id: 'pat-005',
+    name: 'Ana Paula Gomez',
+    fileNumber: 'EXP-4421',
+    phone: '+525599988877',
+    curp: 'GOGA950901MDFMNN02',
+  },
+  {
+    id: 'pat-006',
+    name: 'Jorge Molina',
+    fileNumber: 'EXP-5122',
+    phone: '+525544332211',
+    curp: '',
   },
 ];
 

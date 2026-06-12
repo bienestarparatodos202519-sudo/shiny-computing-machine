@@ -1,9 +1,21 @@
 export type Specialty = 'psiquiatra' | 'psicologo';
+export type AppointmentViewRange = 'all' | 'day' | 'week' | 'month';
 
 export interface Doctor {
   id: string;
   name: string;
   specialty: Specialty;
+  workDays: string[];
+  workStart: string;
+  workEnd: string;
+}
+
+export interface Patient {
+  id: string;
+  name: string;
+  fileNumber: string;
+  phone: string;
+  curp: string;
 }
 
 export interface Appointment {
@@ -25,4 +37,11 @@ export interface BlockedDay {
   id: string;
   date: string;
   description: string;
+}
+
+export interface ClinicData {
+  patients: Patient[];
+  doctors: Doctor[];
+  appointments: Appointment[];
+  blockedDays: BlockedDay[];
 }
