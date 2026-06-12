@@ -610,7 +610,7 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
                       onClick={() => setExpandedAppointmentId(null)}
                       className="mt-3 w-full cursor-pointer rounded-lg bg-slate-200 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-700 transition-all hover:bg-slate-300"
                     >
-                      Cerrar Vista Desplazada
+                      Cerrar expediente
                     </button>
                   </div>
                 </div>
