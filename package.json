@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "desktop:build": "npm run build && neu build --embed-resources",
+    "desktop:exe": "npm run desktop:build && mkdir -p descargas && cp dist/agenda-clinica/agenda-clinica-win_x64.exe descargas/agenda-clinica-computadora.exe"
   },
   "repository": {
     "type": "git",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^10.0.1",
+    "@neutralinojs/neu": "^11.7.2",
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

@@ -10,7 +10,16 @@
 
 Nota: este APK es de depuracion y esta firmado con certificado debug. Sirve para pruebas e instalacion directa, no para publicarlo en Play Store.
 
-## Web
+## Computadora Windows
+
+1. Descarga `agenda-clinica-computadora.exe`.
+2. Haz doble clic en el archivo.
+3. Si Windows muestra una alerta de seguridad, elige "Mas informacion" y luego "Ejecutar de todos modos".
+4. Se abre la aplicacion "Agenda Clinica".
+
+No necesitas programar, instalar Node ni abrir terminal.
+
+## Web opcional
 
 1. Descarga `agenda_clinica_web_dist.zip`.
 2. Descomprime el archivo en un servidor web.

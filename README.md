@@ -26,3 +26,13 @@ cd android
 ```
 
 El APK debug queda en `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+## Windows EXE
+
+El proyecto incluye Neutralino para generar un ejecutable Windows de un solo archivo.
+
+```bash
+npm run desktop:exe
+```
+
+El EXE queda en `descargas/agenda-clinica-computadora.exe`.
