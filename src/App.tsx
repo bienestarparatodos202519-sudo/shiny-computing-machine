@@ -71,26 +71,26 @@ const downloadFile = (content: BlobPart, filename: string, type: string) => {
   URL.revokeObjectURL(url);
 };
 
+const loadSavedAppointments = (): Appointment[] => {
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Appointment[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function App() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>(() => loadSavedAppointments());
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [search, setSearch] = useState('');
   const [message, setMessage] = useState('Los registros se guardan automaticamente en este dispositivo.');
   const importInputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(saved) as Appointment[];
-      setAppointments(parsed);
-    } catch {
-      setMessage('No se pudo leer la base local guardada. Puedes importar un respaldo si lo tienes.');
-    }
-  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments));
