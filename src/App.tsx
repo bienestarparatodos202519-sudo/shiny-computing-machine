@@ -24,6 +24,10 @@ type FormState = {
   status: AppointmentStatus;
 };
 
+type ImportMode = 'append' | 'replace';
+
+type ImportRow = Record<string, string>;
+
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -65,6 +69,163 @@ const createId = () => {
 
 const escapeExcelCell = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
+const normalizeHeader = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+const getRowValue = (row: ImportRow, names: string[]) => {
+  const normalizedNames = names.map(normalizeHeader);
+  const match = Object.entries(row).find(([key]) => normalizedNames.includes(normalizeHeader(key)));
+  return match?.[1]?.trim() ?? '';
+};
+
+const parseCsvLine = (line: string) => {
+  const cells: string[] = [];
+  let current = '';
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim());
+  return cells;
+};
+
+const rowsFromCsv = (content: string) => {
+  const lines = content
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const headers = parseCsvLine(lines[0] ?? '');
+
+  return lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    return headers.reduce<ImportRow>((row, header, index) => {
+      row[header] = cells[index] ?? '';
+      return row;
+    }, {});
+  });
+};
+
+const rowsFromHtmlTable = (content: string) => {
+  const document = new DOMParser().parseFromString(content, 'text/html');
+  const tableRows = Array.from(document.querySelectorAll('tr'));
+  const headers = Array.from(tableRows[0]?.querySelectorAll('th,td') ?? []).map((cell) => cell.textContent?.trim() ?? '');
+
+  return tableRows.slice(1).map((row) => {
+    const cells = Array.from(row.querySelectorAll('td,th')).map((cell) => cell.textContent?.trim() ?? '');
+    return headers.reduce<ImportRow>((importRow, header, index) => {
+      importRow[header] = cells[index] ?? '';
+      return importRow;
+    }, {});
+  });
+};
+
+const rowsFromJson = (content: string) => {
+  const parsed = JSON.parse(content) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error('El JSON debe contener una lista de registros.');
+  }
+  return parsed.map((item) => {
+    if (!item || typeof item !== 'object') {
+      throw new Error('El JSON contiene un registro inválido.');
+    }
+    return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, String(value ?? '')])) as ImportRow;
+  });
+};
+
+const normalizeDateValue = (value: string) => {
+  const clean = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+  const dateParts = clean.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dateParts) {
+    return `${dateParts[3]}-${dateParts[2].padStart(2, '0')}-${dateParts[1].padStart(2, '0')}`;
+  }
+  return formatDate(new Date());
+};
+
+const normalizeTimeValue = (value: string) => {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) {
+    return '09:00';
+  }
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
+};
+
+const normalizeSpecialtyValue = (value: string): Specialty => {
+  const clean = normalizeHeader(value);
+  return clean.includes('psiqu') ? 'psiquiatra' : 'psicologo';
+};
+
+const normalizeStatusValue = (value: string): AppointmentStatus => {
+  const clean = normalizeHeader(value);
+  if (clean.includes('complet') || clean === 'completed') {
+    return 'completed';
+  }
+  if (clean.includes('cancel') || clean === 'canceled') {
+    return 'canceled';
+  }
+  return 'scheduled';
+};
+
+const appointmentFromRow = (row: ImportRow, rowNumber: number) => {
+  const now = new Date().toISOString();
+  const specialty = normalizeSpecialtyValue(getRowValue(row, ['Especialidad', 'specialty']));
+  const patientName = getRowValue(row, ['Nombre', 'Paciente', 'Nombre del paciente', 'patientName']);
+  const patientFileNumber = getRowValue(row, ['Expediente', 'No expediente', 'patientFileNumber']);
+  const patientCurp = normalizeCurp(getRowValue(row, ['CURP', 'patientCurp']));
+  const patientPhone = getRowValue(row, ['Telefono', 'Teléfono', 'Celular', 'patientPhone']);
+  const doctorName = getRowValue(row, ['Especialista', 'Medico', 'Médico', 'Doctor', 'doctorName']) || (specialty === 'psicologo' ? 'Psicologo' : 'Psiquiatra');
+  const missing = [
+    !patientName ? 'Nombre' : '',
+    !patientFileNumber ? 'Expediente' : '',
+    !patientCurp ? 'CURP' : '',
+    !patientPhone ? 'Telefono' : '',
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    throw new Error(`Fila ${rowNumber}: faltan ${missing.join(', ')}.`);
+  }
+
+  return {
+    id: getRowValue(row, ['id']) || createId(),
+    date: normalizeDateValue(getRowValue(row, ['Fecha', 'date'])),
+    time: normalizeTimeValue(getRowValue(row, ['Hora', 'time'])),
+    patientName,
+    patientFileNumber,
+    patientCurp,
+    patientPhone,
+    specialty,
+    doctorId: specialty,
+    doctorName,
+    status: normalizeStatusValue(getRowValue(row, ['Estado', 'status'])),
+    reason: getRowValue(row, ['Motivo', 'reason']),
+    notes: getRowValue(row, ['Notas', 'notes']),
+    createdAt: getRowValue(row, ['Creado', 'createdAt']) || now,
+    updatedAt: now,
+  } satisfies Appointment;
+};
+
 const downloadFile = (content: BlobPart, filename: string, type: string) => {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
@@ -96,6 +257,7 @@ export default function App() {
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const [search, setSearch] = useState('');
   const [message, setMessage] = useState('Los registros se guardan automaticamente en este dispositivo.');
+  const [importMode, setImportMode] = useState<ImportMode>('append');
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -258,7 +420,7 @@ export default function App() {
     setMessage('Respaldo descargado. Puedes importarlo en otro dispositivo.');
   };
 
-  const importBackup = (event: ChangeEvent<HTMLInputElement>) => {
+  const importRecords = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -266,18 +428,47 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(String(reader.result)) as Appointment[];
-        if (!Array.isArray(parsed)) {
-          throw new Error('Formato invalido');
+        const content = String(reader.result ?? '');
+        const fileName = file.name.toLowerCase();
+
+        if (fileName.endsWith('.xlsx')) {
+          throw new Error('Los archivos .xlsx no se leen directo. Guarda el Excel como .xls o .csv, o usa el .xls que descarga esta app.');
         }
-        setAppointments(parsed);
+
+        const rows = fileName.endsWith('.json')
+          ? rowsFromJson(content)
+          : content.toLowerCase().includes('<table')
+            ? rowsFromHtmlTable(content)
+            : rowsFromCsv(content);
+        const imported: Appointment[] = [];
+        const errors: string[] = [];
+
+        rows.forEach((row, index) => {
+          try {
+            imported.push(appointmentFromRow(row, index + 2));
+          } catch (error) {
+            errors.push(error instanceof Error ? error.message : `Fila ${index + 2}: error desconocido.`);
+          }
+        });
+
+        if (imported.length === 0) {
+          throw new Error(errors[0] ?? 'No se encontraron registros válidos para importar.');
+        }
+
+        setAppointments((current) => (importMode === 'replace' ? imported : [...current, ...imported]));
         setForm(emptyForm());
-        setMessage('Respaldo importado y guardado en este dispositivo.');
-      } catch {
-        setMessage('No se pudo importar el respaldo. Verifica que sea el archivo JSON correcto.');
+        setMessage(
+          `Carga masiva lista: ${imported.length} registros importados${importMode === 'replace' ? ' reemplazando la base actual' : ' agregados a la base actual'}${errors.length ? `. ${errors.length} filas omitidas: ${errors.slice(0, 3).join(' ')}` : '.'}`,
+        );
+      } catch (error) {
+        setMessage(error instanceof Error ? `No se pudo importar: ${error.message}` : 'No se pudo importar el archivo.');
       } finally {
         event.target.value = '';
       }
+    };
+    reader.onerror = () => {
+      setMessage('No se pudo leer el archivo seleccionado. Intenta guardarlo de nuevo como CSV, XLS o JSON.');
+      event.target.value = '';
     };
     reader.readAsText(file);
   };
@@ -301,10 +492,19 @@ export default function App() {
               <button onClick={exportBackup} className="rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white shadow-md shadow-indigo-100 hover:bg-indigo-700">
                 Respaldo para otro dispositivo
               </button>
+              <select
+                value={importMode}
+                onChange={(event) => setImportMode(event.target.value as ImportMode)}
+                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                title="Elige si la carga masiva se agrega o reemplaza la base local"
+              >
+                <option value="append">Importar: agregar</option>
+                <option value="replace">Importar: reemplazar</option>
+              </select>
               <button onClick={() => importInputRef.current?.click()} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                Importar respaldo
+                Carga masiva / importar base
               </button>
-              <input ref={importInputRef} type="file" accept="application/json,.json" onChange={importBackup} className="hidden" />
+              <input ref={importInputRef} type="file" accept=".json,.csv,.xls,.html,text/csv,application/json,application/vnd.ms-excel" onChange={importRecords} className="hidden" />
             </div>
           </div>
 
