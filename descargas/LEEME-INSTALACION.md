@@ -19,6 +19,15 @@ Nota: este APK es de depuracion y esta firmado con certificado debug. Sirve para
 
 No necesitas programar, instalar Node ni abrir terminal.
 
+## Uso de datos y Excel
+
+- Da de alta pacientes desde "Alta manual de paciente".
+- Da de alta psicologos o psiquiatras desde "Alta manual de psicologo/psiquiatra".
+- Captura jornadas con dias y horas de trabajo.
+- Usa "Carga masiva Excel" para subir pacientes, especialistas, citas y bloqueos desde la plantilla.
+- Usa "Descargar Excel" para bajar todos los datos capturados.
+- Para tener la misma informacion en otra computadora, descarga el Excel en la primera computadora y cargalo en la segunda.
+
 ## Web opcional
 
 1. Descarga `agenda_clinica_web_dist.zip`.
