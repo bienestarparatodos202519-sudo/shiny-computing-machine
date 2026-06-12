@@ -13,3 +13,16 @@ Aplicacion React para visualizar citas de pacientes por mes, semana o dia, con f
 - `npm run build`: compila TypeScript y genera el build de produccion.
 - `npm run lint`: ejecuta ESLint.
 - `npm run preview`: sirve el build generado.
+
+## Android
+
+El proyecto incluye Capacitor para generar APK Android desde el build web.
+
+```bash
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+
+El APK debug queda en `android/app/build/outputs/apk/debug/app-debug.apk`.
