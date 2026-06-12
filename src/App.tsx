@@ -48,6 +48,12 @@ const emptyForm = (): FormState => ({
 
 const blockedDays: BlockedDay[] = [];
 
+const timeOptions = Array.from({ length: 25 }, (_, index) => {
+  const hour = 8 + Math.floor(index / 2);
+  const minute = index % 2 === 0 ? '00' : '30';
+  return `${String(hour).padStart(2, '0')}:${minute}`;
+});
+
 const normalizeCurp = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 18);
 
 const createId = () => {
@@ -330,7 +336,13 @@ export default function App() {
               <input type="date" value={form.date} onChange={(event) => updateField('date', event.target.value)} className="input" />
             </Field>
             <Field className="lg:col-span-2" label="Hora">
-              <input type="time" value={form.time} onChange={(event) => updateField('time', event.target.value)} className="input" />
+              <select value={form.time} onChange={(event) => updateField('time', event.target.value)} className="input">
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field className="lg:col-span-2" label="Estado">
               <select value={form.status} onChange={(event) => updateField('status', event.target.value)} className="input">
