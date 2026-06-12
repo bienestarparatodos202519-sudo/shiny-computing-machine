@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   Activity,
   BadgeHelp,
@@ -481,16 +481,14 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        {selectedAppointment && (
-          <motion.section
-            key={selectedAppointment.id}
-            initial={{ opacity: 0, height: 0, y: -8 }}
-            animate={{ opacity: 1, height: 'auto', y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="mt-4 overflow-hidden"
-          >
+      {selectedAppointment && (
+        <motion.section
+          key={selectedAppointment.id}
+          initial={{ opacity: 0, height: 0, y: -8 }}
+          animate={{ opacity: 1, height: 'auto', y: 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="mt-4 overflow-hidden"
+        >
             <div className="rounded-3xl border border-indigo-100 bg-white/90 p-4 shadow-lg shadow-indigo-100/60">
               <div className="mb-4 flex flex-col justify-between gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-start">
                 <div>
@@ -522,9 +520,8 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
                 <DetailItem icon={<FileText className="h-4 w-4" />} label="Notas" value={selectedAppointment.notes} large />
               </div>
             </div>
-          </motion.section>
-        )}
-      </AnimatePresence>
+        </motion.section>
+      )}
     </div>
   );
 }
