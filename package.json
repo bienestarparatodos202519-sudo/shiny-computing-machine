@@ -3,10 +3,35 @@
   "version": "1.0.0",
   "description": "Patient appointment calendar demo",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:win": "npm run build && electron-builder --win portable --x64",
     "preview": "vite preview --host 0.0.0.0"
+  },
+  "build": {
+    "appId": "com.calendario.pacientes",
+    "productName": "Calendario de Pacientes",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Calendario-de-Pacientes-Windows.exe"
+    }
   },
   "repository": {
     "type": "git",
@@ -30,6 +55,8 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.2",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.16"
