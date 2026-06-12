@@ -553,7 +553,7 @@ export function CalendarView({ appointments, doctors, blockedDays }: CalendarVie
                       <div className="flex items-center gap-2 rounded-xl border border-white/50 bg-white/80 p-2.5">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
                         <div>
-                          <span className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Identificador CURP</span>
+                          <span className="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">CURP opcional</span>
                           <span className="font-mono font-black uppercase tracking-tight text-slate-800">{app.patientCurp || 'Sin CURP Registrada'}</span>
                         </div>
                       </div>

@@ -281,7 +281,7 @@ export function DataManagementPanel({
             <input value={patientForm.name} onChange={(event) => setPatientForm({ ...patientForm, name: event.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold" placeholder="Nombre del paciente" />
             <input value={patientForm.fileNumber} onChange={(event) => setPatientForm({ ...patientForm, fileNumber: event.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold" placeholder="Numero de expediente" />
             <input value={patientForm.phone} onChange={(event) => setPatientForm({ ...patientForm, phone: event.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold" placeholder="Numero telefonico" />
-            <input value={patientForm.curp} onChange={(event) => setPatientForm({ ...patientForm, curp: event.target.value.toUpperCase() })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase" placeholder="CURP" />
+            <input value={patientForm.curp} onChange={(event) => setPatientForm({ ...patientForm, curp: event.target.value.toUpperCase() })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold uppercase" placeholder="CURP opcional (puede quedar vacio)" />
             <button onClick={addPatient} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700">Guardar paciente</button>
           </div>
         </div>

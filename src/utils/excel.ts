@@ -7,7 +7,7 @@ type CellValue = string | number | boolean | Date | null | undefined;
 type Row = CellValue[];
 
 const headers = {
-  patients: ['Nombre', 'Expediente', 'Telefono', 'CURP'],
+  patients: ['Nombre', 'Expediente', 'Telefono', 'CURP (Opcional)'],
   doctors: [
     'Nombre',
     'Especialidad',
@@ -28,13 +28,14 @@ const headers = {
     'Festivos Inicio',
     'Festivos Fin',
   ],
-  appointments: ['Fecha', 'Hora', 'Paciente', 'Expediente', 'Telefono', 'CURP', 'Especialista', 'Especialidad', 'Tipo', 'Estatus'],
+  appointments: ['Fecha', 'Hora', 'Paciente', 'Expediente', 'Telefono', 'CURP (Opcional)', 'Especialista', 'Especialidad', 'Tipo', 'Estatus'],
   blockedDays: ['Fecha', 'Descripcion'],
 };
 const workDays: WorkDay[] = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo', 'Festivos'];
 
 const normalize = (value: CellValue) => String(value ?? '').trim();
 const normalizeLower = (value: CellValue) => normalize(value).toLowerCase();
+const normalizeHeader = (value: CellValue) => normalizeLower(value).replace(/\s*\(.+\)\s*$/, '');
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const parseSpecialty = (value: CellValue): Specialty => (normalizeLower(value).includes('psicolog') ? 'psicologo' : 'psiquiatra');
@@ -111,7 +112,7 @@ const scheduleValue = (schedule: WorkSchedule[] | undefined, day: WorkDay, type:
 const toRows = (rows: Row[]): ExcelRecord[] => {
   if (rows.length < 2) return [];
   const [headerRow, ...bodyRows] = rows;
-  const titles = headerRow.map((cell) => normalizeLower(cell));
+  const titles = headerRow.map((cell) => normalizeHeader(cell));
 
   return bodyRows
     .filter((row) => row.some((cell) => normalize(cell)))
@@ -233,7 +234,7 @@ export async function importClinicData(file: File): Promise<Partial<ClinicData>>
 
 export async function downloadExcelTemplate() {
   const sheets: Sheet<Blob>[] = [
-    { sheet: 'Pacientes', data: [headers.patients.map((header) => cell(header)), ['Nombre Paciente', 'EXP-0001', '+525500000000', 'CURP000000XXXXXX00']] },
+    { sheet: 'Pacientes', data: [headers.patients.map((header) => cell(header)), ['Nombre Paciente', 'EXP-0001', '+525500000000', '']] },
     {
       sheet: 'Especialistas',
       data: [
@@ -241,7 +242,7 @@ export async function downloadExcelTemplate() {
         ['Dra. Ejemplo', 'psicologo', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '09:00', '17:00', '', '', '', '', '', ''],
       ],
     },
-    { sheet: 'Citas', data: [headers.appointments.map((header) => cell(header)), ['2026-06-12', '10:00', 'Nombre Paciente', 'EXP-0001', '+525500000000', 'CURP000000XXXXXX00', 'Dra. Ejemplo', 'psicologo', 'individual', 'confirmed']] },
+    { sheet: 'Citas', data: [headers.appointments.map((header) => cell(header)), ['2026-06-12', '10:00', 'Nombre Paciente', 'EXP-0001', '+525500000000', '', 'Dra. Ejemplo', 'psicologo', 'individual', 'confirmed']] },
     { sheet: 'Bloqueos', data: [headers.blockedDays.map((header) => cell(header)), ['2026-06-30', 'Capacitacion']] },
   ];
 

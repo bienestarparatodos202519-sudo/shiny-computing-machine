@@ -22,9 +22,11 @@ No necesitas programar, instalar Node ni abrir terminal.
 ## Uso de datos y Excel
 
 - Da de alta pacientes desde "Alta manual de paciente".
+- La CURP es opcional; si no la tienes, deja ese campo vacio.
 - Da de alta psicologos o psiquiatras desde "Alta manual de psicologo/psiquiatra".
 - Captura jornadas con dias y horas de trabajo.
 - Usa "Carga masiva Excel" para subir pacientes, especialistas, citas y bloqueos desde la plantilla.
+- En la carga masiva, la columna "CURP (Opcional)" puede quedar vacia.
 - Usa "Descargar Excel" para bajar todos los datos capturados.
 - Para tener la misma informacion en otra computadora, descarga el Excel en la primera computadora y cargalo en la segunda.
 - Para sincronizacion central, configura un Google Sheet con el archivo `GOOGLE_SHEETS_SYNC.gs`, publica el Apps Script como Web App y pega esa URL dentro de "Sincronizacion Google Sheets".
