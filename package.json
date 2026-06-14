@@ -1,0 +1,62 @@
+{
+  "name": "rutas-saltillo",
+  "version": "1.0.0",
+  "description": "Sistema de asistencia, navegacion y bitacora en ruta para Saltillo.",
+  "main": "electron.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win nsis",
+    "cap:add:android": "npm run build && npx cap add android",
+    "cap:sync": "npm run build && npx cap sync",
+    "android:open": "npx cap open android",
+    "android:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bienestarparatodos202519-sudo/shiny-computing-machine.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bienestarparatodos202519-sudo/shiny-computing-machine/issues"
+  },
+  "homepage": "https://github.com/bienestarparatodos202519-sudo/shiny-computing-machine#readme",
+  "build": {
+    "appId": "com.rutas.saltillo",
+    "productName": "Rutas Saltillo",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron.js"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  }
+}
